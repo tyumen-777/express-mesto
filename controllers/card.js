@@ -1,18 +1,11 @@
 const Card = require('../models/card');
-// const User = require('../models/user');
 
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
     .then((cards) => {
-      if (cards.length === 0) {
-        res.status(404).send({ message: 'Нет карточек' });
-        return;
-      }
       res.status(200).send(cards);
     })
-    .catch((err) => {
-      res.status(500).send({ message: `Внутренняя ошибка сервера: ${err}` });
-    });
+    .catch(next);
 };
 
 const createCard = (req, res) => {
@@ -61,6 +54,11 @@ const likeCard = (req, res, next) => {
       }
       res.send(card);
     })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: `Передан некорректный id: ${err}` });
+      }
+    })
     .catch(next);
 };
 
@@ -74,6 +72,11 @@ const dislikeCard = (req, res, next) => {
         return;
       }
       res.send(card);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: `Передан некорректный id: ${err}` });
+      }
     })
     .catch(next);
 };

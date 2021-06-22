@@ -1,17 +1,11 @@
 const User = require('../models/user');
 
-const getUsers = (req, res) => {
+const getUsers = (req, res, next) => {
   User.find({})
     .then((users) => {
-      if (users.length === 0) {
-        res.status(404).send({ message: 'User not found' });
-        return;
-      }
       res.status(200).send(users);
     })
-    .catch((err) => {
-      res.status(500).send({ message: `Внутренняя ошибка сервера: ${err}` });
-    });
+    .catch(next);
 };
 
 const getUserById = (req, res) => {
@@ -50,7 +44,7 @@ const createUser = (req, res) => {
 const updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
   const owner = req.user._id;
-  return User.findByIdAndUpdate(owner, { avatar }, { new: true })
+  return User.findByIdAndUpdate(owner, { avatar }, { new: true }, { runValidators: true })
     .then((user) => {
       if (!user) {
         res.status(404).send({ message: 'Нет пользователя с таким id' });
@@ -58,19 +52,29 @@ const updateUserAvatar = (req, res, next) => {
       }
       res.send(user);
     })
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: `Ошибка при валидации ${err}` });
+      }
+    })
     .catch(next);
 };
 
 const updateUser = (req, res, next) => {
   const { name, about } = req.body;
   const owner = req.user._id;
-  return User.findOneAndUpdate(owner, { name, about }, { new: true })
+  return User.findOneAndUpdate(owner, { name, about }, { new: true }, { runValidators: true })
     .then((user) => {
       if (!user) {
         res.status(404).send({ message: 'Нет пользователя с таким id' });
         return;
       }
       res.send(user);
+    })
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: `Ошибка при валидации ${err}` });
+      }
     })
     .catch(next);
 };
