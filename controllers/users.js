@@ -47,8 +47,38 @@ const createUser = (req, res) => {
     });
 };
 
+const updateUserAvatar = (req, res, next) => {
+  const { avatar } = req.body;
+  const owner = req.user._id;
+  return User.findByIdAndUpdate(owner, { avatar }, { new: true })
+    .then((user) => {
+      if (!user) {
+        res.status(404).send({ message: 'Нет пользователя с таким id' });
+        return;
+      }
+      res.send(user);
+    })
+    .catch(next);
+};
+
+const updateUser = (req, res, next) => {
+  const { name, about } = req.body;
+  const owner = req.user._id;
+  return User.findOneAndUpdate(owner, { name, about }, { new: true })
+    .then((user) => {
+      if (!user) {
+        res.status(404).send({ message: 'Нет пользователя с таким id' });
+        return;
+      }
+      res.send(user);
+    })
+    .catch(next);
+};
+
 module.exports = {
   getUsers,
   getUserById,
   createUser,
+  updateUserAvatar,
+  updateUser,
 };

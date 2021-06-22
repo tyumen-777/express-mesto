@@ -50,40 +50,6 @@ const deleteCard = (req, res) => {
     });
 };
 
-// const likeCard = (req, res, next) => {
-//   const { cardId } = req.params;
-//   User.findById(req.user._id)
-//     .then((user) => {
-//       Card.findByIdAndUpdate(
-//         { _id, cardId },
-//         { $addToSet: { likes: user._id } },
-//         { new: true },
-//       )
-//         .then((card) => {
-//           res.status(200).send(card);
-//         })
-//         .catch(next);
-//     })
-//     .catch(next);
-// };
-
-// const dislikeCard = (req, res, next) => {
-//   const { cardId } = req.params;
-//   User.findById(req.user._id)
-//     .then((user) => {
-//       Card.findByIdAndUpdate(
-//         { _id, cardId },
-//         { $pull: { likes: user._id } },
-//         { new: true },
-//       )
-//         .then((card) => {
-//           res.status(200).send(card);
-//         })
-//         .catch(next);
-//     })
-//     .catch(next);
-// };
-
 const likeCard = (req, res, next) => {
   const owner = req.user._id;
 
