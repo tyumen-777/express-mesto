@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 
 const usersRoutes = require('./routes/users');
 const cardRoutes = require('./routes/cards');
+const { login, createUser } = require('./controllers/users');
 
 const app = express();
 const { PORT = 3000 } = process.env;
@@ -31,6 +32,9 @@ app.use('/', cardRoutes);
 app.use((req, res) => {
   res.status(404).send({ message: 'Запрашиваемый ресурс не найден' });
 });
+
+app.post('/signin', login);
+app.post('/signup', createUser);
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
