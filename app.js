@@ -24,25 +24,6 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(auth);
-
-app.use('/', usersRoutes);
-app.use('/', cardRoutes);
-app.all('*', () => {
-  throw new NotFoundError('Запрашиваемый ресурс не найден');
-});
-app.use((err, req, res) => {
-  const { statusCode = 500, message } = err;
-  if (err.kind === 'ObjectId') {
-    res.status(400).send({
-      message: 'Неверно переданы данные',
-    });
-  } else {
-    res.status(statusCode).send({
-      message: statusCode === 500 ? 'На сервере произошщла ошибка' : message,
-    });
-  }
-});
 
 app.post(
   '/signin',
@@ -69,6 +50,28 @@ app.post(
   }),
   createUser,
 );
+
+app.use(auth);
+
+app.use('/', usersRoutes);
+app.use('/', cardRoutes);
+app.all('*', () => {
+  throw new NotFoundError('Запрашиваемый ресурс не найден');
+});
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const { statusCode = 500, message } = err;
+  if (err.kind === 'ObjectId') {
+    res.status(400).send({
+      message: 'Неверно переданы данные',
+    });
+  } else {
+    res.status(statusCode).send({
+      message: statusCode === 500 ? 'На сервере произошла ошибка' : message,
+    });
+  }
+});
+
 app.use(errors());
 
 app.listen(PORT, () => {
