@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
+const NotAuthError = require('../errors/not-auth-error');
+const NotFoundError = require('../errors/not-found-error');
+const BadRequestError = require('../errors/bad-request-error');
+const ConflictError = require('../errors/conflict-error');
+
+const { NODE_ENV, JWT_SECRET } = process.env;
 
 const getUsers = (req, res, next) => {
   User.find({})
@@ -10,25 +16,24 @@ const getUsers = (req, res, next) => {
     .catch(next);
 };
 
-const getUserById = (req, res) => {
-  User.findById(req.params.id)
+const getUserById = (req, res, next) => {
+  const id = req.user._id;
+  User.findById(id)
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'Нет пользователя с таким id' });
-        return;
+        throw new NotFoundError('Нет пользователя с таким id');
       }
       res.status(200).send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: `Передан некорректный id: ${err}` });
-        return;
+        throw new BadRequestError(err.message);
       }
-      res.status(500).send({ message: `Внутреняя ошибка сервера ${err}` });
-    });
+    })
+    .catch(next);
 };
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   bcrypt.hash(req.body.password, 10)
     .then((hash) => User.create({
       email: req.body.email,
@@ -42,11 +47,13 @@ const createUser = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: `Ошибка при валидации: ${err}` });
-        return;
+        throw new BadRequestError(err.message);
       }
-      res.status(500).send({ message: `Внутреняя ошибка сервера ${err}` });
-    });
+      if (err.code === 11000 && err.code === 'MongoError') {
+        throw new ConflictError('Пользователь с таким email уже существует');
+      }
+    })
+    .catch(next);
 };
 
 const updateUserAvatar = (req, res, next) => {
@@ -54,15 +61,11 @@ const updateUserAvatar = (req, res, next) => {
   const owner = req.user._id;
   return User.findByIdAndUpdate(owner, { avatar }, { new: true, runValidators: true })
     .then((user) => {
-      if (!user) {
-        res.status(404).send({ message: 'Нет пользователя с таким id' });
-        return;
-      }
-      res.send(user);
+      res.status(200).send(user);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: `Ошибка при валидации ${err}` });
+        throw new BadRequestError(err.message);
       }
     })
     .catch(next);
@@ -71,34 +74,31 @@ const updateUserAvatar = (req, res, next) => {
 const updateUser = (req, res, next) => {
   const { name, about } = req.body;
   const owner = req.user._id;
-  return User.findByIdAndUpdate(owner, { name, about }, { new: true, runValidators: true })
+  return User.findOneAndUpdate(owner, { name, about }, { new: true, runValidators: true })
     .then((user) => {
-      if (!user) {
-        res.status(404).send({ message: 'Нет пользователя с таким id' });
-        return;
-      }
-      res.send(user);
+      res.status(200).send(user);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: `Ошибка при валидации ${err}` });
+        throw new BadRequestError(err.message);
       }
     })
     .catch(next);
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'super-strong-secret',
+      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
         { expiresIn: '7d' });
       return res.send({ token });
     })
     .catch((err) => {
-      res.status(401).send({ message: err.message });
-    });
+      throw new NotAuthError(err.message);
+    })
+    .catch(next);
 };
 
 module.exports = {
